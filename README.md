@@ -15,6 +15,47 @@ Static Arabic RTL landing page: order forms, pricing, FAQ, and SEO JSON-LD.
 | `privacy.html` | سياسة الخصوصية |
 | `terms.html` | شروط الاستخدام |
 | `preview.html` | Redirect to `index.html` (legacy bookmark) |
+| `backend/google-apps-script/Code.gs` | Google Sheets order logger (Apps Script) |
+
+## Orders → Google Sheet + WhatsApp
+
+Each submit is sent to your **Google Sheet** (if configured), then the customer is redirected to **WhatsApp** with the same details.
+
+### 1) Create the sheet
+
+1. Create a new Google Sheet (any name).
+2. **Extensions → Apps Script**.
+3. Replace the default code with `backend/google-apps-script/Code.gs`.
+4. In `Code.gs`, set `SECRET_TOKEN` to a long random string (keep it private).
+
+### 2) Deploy the web app
+
+1. **Deploy → New deployment**.
+2. Type: **Web app**.
+3. Execute as: **Me**.
+4. Who has access: **Anyone** (required for the public site).
+5. Deploy and copy the **Web app URL** (ends with `/exec`).
+
+### 3) Connect the landing page
+
+In `index.html`, on **both** `<form class="order-form">` elements, set:
+
+- `data-sheet-endpoint="PASTE_WEB_APP_URL_HERE"`
+- `data-sheet-token="SAME_SECRET_TOKEN_AS_IN_Code_gs"`
+
+Leave both attributes **empty** to skip the sheet and only use WhatsApp.
+
+### 4) Sheet columns
+
+The script creates a tab **Orders** with headers:
+
+`Date` · `Model` · `Quantity` · `Total (MAD)` · `Full name` · `City` · `Address` · `Phone` · `Form` · `Page URL`
+
+### 5) Notes
+
+- The browser uses `no-cors` POST for `script.google.com` URLs so orders still reach the sheet without CORS errors.
+- A hidden honeypot field reduces simple bot spam.
+- If sheet send fails (network), the user is still sent to WhatsApp so you do not lose the lead.
 
 ## Run locally
 
@@ -25,19 +66,6 @@ npx --yes serve .
 ```
 
 Then open the URL shown (e.g. `http://localhost:3000`).
-
-## Order emails (Web3Forms)
-
-Orders are sent to **your email inbox** via [Web3Forms](https://web3forms.com) (free tier).
-
-1. Create an access key at [web3forms.com](https://web3forms.com) and confirm the inbox you want to receive orders in.
-2. In `index.html`, set the same key on **both** order forms (`#order-form` and `#order-form-retarget`):
-
-   - `data-web3forms-access-key="YOUR_ACCESS_KEY"`
-
-3. Deploy. Submissions appear as emails with the full order details (model, quantity, totals, address, phone).
-
-Optional: customers can fill **البريد الإلكتروني (اختياري)** so Web3Forms can attach a reply address when supported.
 
 ## Optional React scaffold
 

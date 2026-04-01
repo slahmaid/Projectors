@@ -123,13 +123,14 @@
           <p class="cta-trust">السعر أعلاه يخصّ الموديل المختار والكمية المعروضة. بعد إرسال النموذج، يتصل بك فريقنا لتأكيد الطلب والعنوان والدفع.</p>
         </div>
 
-        <!-- طلبات بالبريد عبر Web3Forms -->
+        <!-- Google Sheet: paste Web App URL + same SECRET_TOKEN as in backend/google-apps-script/Code.gs -->
         <form
           class="order-form"
           id="order-form"
           action="#"
           method="post"
-          data-web3forms-access-key="5973be36-ca6a-4f4c-a1ae-06aee58af97e"
+          data-sheet-endpoint="https://script.google.com/macros/s/AKfycbwq5S_hIrRpLpJbI9aeRkXqFkw8ZvX2biPvuIqOVCF-MWOJ2On97gozGpwRY8CRr_JI/exec"
+          data-sheet-token="1df6fe69dc607f88fec71e6cbb1c4793aef13be5b5939bd7997e51d07d43cd8b725093acf25c45810d3bad6360904cca"
           data-price-sale-target="order-price-sale"
           data-price-compare-target="order-price-compare"
           data-discount-target="order-price-discount"
@@ -204,6 +205,7 @@
 
             <div class="cta-fields">
               <p class="cta-fields-hint">للتأكيد والتوصيل فقط.</p>
+              <input type="text" name="website" tabindex="-1" autocomplete="off" class="hp-field" aria-hidden="true" />
               <div class="cta-fields-grid">
                 <div class="form-field">
                   <label for="fullname">الاسم الكامل</label>
@@ -217,10 +219,6 @@
                   <label for="address">العنوان</label>
                   <input type="text" id="address" name="address" autocomplete="street-address" required />
                 </div>
-                <div class="form-field form-field-wide">
-                  <label for="order-email">البريد الإلكتروني (اختياري)</label>
-                  <input type="email" id="order-email" name="email" autocomplete="email" inputmode="email" />
-                </div>
               </div>
               <div class="cta-fields-spacer" aria-hidden="true"></div>
               <div class="form-row-phone-submit">
@@ -231,8 +229,7 @@
                 <div class="form-submit-cell">
                   <span class="form-submit-spacer" aria-hidden="true">.</span>
                   <button type="submit" class="btn btn-primary btn-submit-order">أكّد طلبي الآن</button>
-                  <p class="form-submit-note">بعد الإرسال ستصلك تفاصيل الطلب على بريدك — سنتواصل معك لتأكيد التوصيل.</p>
-                  <p class="form-submit-status" aria-live="polite"></p>
+                  <p class="form-submit-note">يرجى إبقاء هاتفك متاحاً لتأكيد الطلب.</p>
                 </div>
               </div>
             </div>
@@ -602,7 +599,8 @@
           id="order-form-retarget"
           action="#"
           method="post"
-          data-web3forms-access-key="5973be36-ca6a-4f4c-a1ae-06aee58af97e"
+          data-sheet-endpoint="https://script.google.com/macros/s/AKfycbwq5S_hIrRpLpJbI9aeRkXqFkw8ZvX2biPvuIqOVCF-MWOJ2On97gozGpwRY8CRr_JI/exec"
+          data-sheet-token="1df6fe69dc607f88fec71e6cbb1c4793aef13be5b5939bd7997e51d07d43cd8b725093acf25c45810d3bad6360904cca"
           data-price-sale-target="order-rt-price-sale"
           data-price-compare-target="order-rt-price-compare"
           data-discount-target="order-rt-price-discount"
@@ -676,6 +674,7 @@
 
             <div class="cta-fields">
               <p class="cta-fields-hint">للتأكيد والتوصيل فقط.</p>
+              <input type="text" name="website" tabindex="-1" autocomplete="off" class="hp-field" aria-hidden="true" />
               <div class="cta-fields-grid">
                 <div class="form-field">
                   <label for="fullname-retarget">الاسم الكامل</label>
@@ -695,16 +694,6 @@
                     required
                   />
                 </div>
-                <div class="form-field form-field-wide">
-                  <label for="order-email-retarget">البريد الإلكتروني (اختياري)</label>
-                  <input
-                    type="email"
-                    id="order-email-retarget"
-                    name="email_rt"
-                    autocomplete="email"
-                    inputmode="email"
-                  />
-                </div>
               </div>
               <div class="cta-fields-spacer" aria-hidden="true"></div>
               <div class="form-row-phone-submit">
@@ -715,8 +704,7 @@
                 <div class="form-submit-cell">
                   <span class="form-submit-spacer" aria-hidden="true">.</span>
                   <button type="submit" class="btn btn-primary btn-submit-order">أكّد طلبي الآن</button>
-                  <p class="form-submit-note">بعد الإرسال ستصلك تفاصيل الطلب على بريدك — سنتواصل معك لتأكيد كل التفاصيل.</p>
-                  <p class="form-submit-status" aria-live="polite"></p>
+                  <p class="form-submit-note">بعد الإرسال، سنتواصل معك لتأكيد كل التفاصيل.</p>
                 </div>
               </div>
             </div>

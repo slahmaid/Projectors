@@ -13,8 +13,6 @@
           var btnMinus = form.querySelector(".qty-minus-btn");
           var btnPlus = form.querySelector(".qty-plus-btn");
           var totalAmountEl = form.querySelector(".quantity-total-amount");
-          var submitBtn = form.querySelector(".btn-submit-order");
-          var statusEl = form.querySelector(".form-submit-status");
 
           function formatDhAmount(n) {
             var num = parseInt(String(n), 10);
@@ -113,11 +111,46 @@
             return "";
           }
 
-          function setSubmitStatus(text, kind) {
-            if (!statusEl) return;
-            statusEl.textContent = text || "";
-            statusEl.classList.remove("is-success", "is-error");
-            if (kind) statusEl.classList.add(kind);
+          function getWhatsAppNumber() {
+            var byForm = form.getAttribute("data-whatsapp-number");
+            if (byForm) return byForm.replace(/\D/g, "");
+            var telLink = document.querySelector(".site-footer-phone a[href^='tel:']");
+            if (!telLink) return "212600000000";
+            return (telLink.getAttribute("href") || "").replace("tel:", "").replace(/\D/g, "") || "212600000000";
+          }
+
+          function redirectWhatsApp(model, unitPriceStr, qty, totalLabel, fullname, city, address, phone) {
+            var whatsappNumber = getWhatsAppNumber();
+            var message =
+              "السلام عليكم، أريد تأكيد هذا الطلب:\n" +
+              "- الموديل: " + model + "\n" +
+              "- الكمية: " + qty + "\n" +
+              "- السعر للوحدة: " + unitPriceStr + "\n" +
+              "- المجموع: " + totalLabel + "\n" +
+              "- الاسم: " + fullname + "\n" +
+              "- المدينة: " + city + "\n" +
+              "- العنوان: " + address + "\n" +
+              "- الهاتف: " + phone;
+            window.location.href = "https://wa.me/" + whatsappNumber + "?text=" + encodeURIComponent(message);
+          }
+
+          function submitToGoogleSheet(endpoint, payload) {
+            var isAppsScript = /script\.google\.com\/macros\/s\//i.test(endpoint);
+            if (isAppsScript) {
+              return fetch(endpoint, {
+                method: "POST",
+                mode: "no-cors",
+                headers: { "Content-Type": "text/plain;charset=utf-8" },
+                body: JSON.stringify(payload)
+              });
+            }
+            return fetch(endpoint, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(payload)
+            }).then(function (res) {
+              if (!res.ok) throw new Error("HTTP_" + res.status);
+            });
           }
 
           form.addEventListener("submit", function (e) {
@@ -127,87 +160,52 @@
               return;
             }
 
-            var accessKey = (form.getAttribute("data-web3forms-access-key") || "").trim();
-            if (!accessKey) {
-              setSubmitStatus(
-                "يرجى إضافة مفتاح Web3Forms في data-web3forms-access-key داخل النموذج (أنشئ مفتاحاً مجانياً على web3forms.com).",
-                "is-error"
-              );
+            var hpEl = form.querySelector("input[name='website']");
+            if (hpEl && String(hpEl.value || "").trim()) {
               return;
             }
 
             var checked = form.querySelector(".variant-row input[type='radio']:checked");
             var model = checked ? (checked.value || "").toUpperCase() : "";
-            var unitPrice = checked && checked.dataset.priceSale ? checked.dataset.priceSale + " د.م" : "-";
-            var qty = qtyInput ? qtyInput.value : "1";
+            var unitPriceNum = checked ? parseInt(String(checked.dataset.priceSale), 10) : NaN;
+            var unitPriceStr = checked && checked.dataset.priceSale ? checked.dataset.priceSale + " د.م" : "-";
+            var qtyNum = qtyInput ? parseInt(qtyInput.value, 10) : 1;
+            if (isNaN(qtyNum) || qtyNum < 1) qtyNum = 1;
+            var qty = String(qtyNum);
+            var totalMAD = !isNaN(unitPriceNum) ? unitPriceNum * qtyNum : 0;
             var fullname = getFieldValue(["#fullname", "#fullname-retarget", "input[name='fullname']", "input[name='fullname_rt']"]);
             var city = getFieldValue(["#city", "#city-retarget", "input[name='city']", "input[name='city_rt']"]);
             var address = getFieldValue(["#address", "#address-retarget", "input[name='address']", "input[name='address_rt']"]);
             var phone = getFieldValue(["#phone", "#phone-retarget", "input[name='phone']", "input[name='phone_rt']"]);
-            var emailOpt = getFieldValue(["#order-email", "#order-email-retarget", "input[name='email']", "input[name='email_rt']"]);
             var total = totalAmountEl ? totalAmountEl.textContent.trim() : "-";
-            var formLabel = form.id === "order-form-retarget" ? "نموذج ثانٍ" : "النموذج الرئيسي";
-            var message =
-              "طلب جديد — بروجكتور شمسي\n" +
-              "المصدر: " + formLabel + "\n" +
-              "الموديل: " + model + "\n" +
-              "الكمية: " + qty + "\n" +
-              "السعر للوحدة: " + unitPrice + "\n" +
-              "المجموع: " + total + "\n" +
-              "الاسم: " + fullname + "\n" +
-              "المدينة: " + city + "\n" +
-              "العنوان: " + address + "\n" +
-              "الهاتف: " + phone + "\n" +
-              (emailOpt ? "البريد (إن وُجد): " + emailOpt + "\n" : "") +
-              "الصفحة: " + window.location.href;
 
+            var sheetEndpoint = (form.getAttribute("data-sheet-endpoint") || "").trim();
+            var sheetToken = (form.getAttribute("data-sheet-token") || "").trim();
             var payload = {
-              access_key: accessKey,
-              subject: "طلب جديد — بروجكتور شمسي (" + model + " × " + qty + ")",
-              name: fullname,
+              token: sheetToken,
+              honeypot: "",
+              model: model,
+              quantity: qtyNum,
+              price: totalMAD,
+              fullname: fullname,
+              city: city,
+              address: address,
               phone: phone,
-              message: message,
-              botcheck: "",
-              from_name: fullname
+              form_id: form.id || "",
+              page_url: window.location.href
             };
-            if (emailOpt) {
-              payload.email = emailOpt;
+
+            function goWhatsApp() {
+              redirectWhatsApp(model, unitPriceStr, qty, total, fullname, city, address, phone);
             }
 
-            if (submitBtn) submitBtn.disabled = true;
-            setSubmitStatus("جاري إرسال الطلب إلى بريدك…", "");
-
-            fetch("https://api.web3forms.com/submit", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Accept: "application/json"
-              },
-              body: JSON.stringify(payload)
-            })
-              .then(function (res) {
-                return res.json();
-              })
-              .then(function (data) {
-                if (data && data.success) {
-                  setSubmitStatus("تم إرسال الطلب بنجاح. راجع بريدك الإلكتروني.", "is-success");
-                  form.reset();
-                  clampQty();
-                  syncPrice();
-                  syncVariantImage();
-                } else {
-                  setSubmitStatus(
-                    (data && data.message) || "تعذّر إرسال الطلب. تحقق من المفتاح أو حاول لاحقاً.",
-                    "is-error"
-                  );
-                }
-              })
-              .catch(function () {
-                setSubmitStatus("خطأ في الاتصال. تحقق من الشبكة وحاول مرة أخرى.", "is-error");
-              })
-              .finally(function () {
-                if (submitBtn) submitBtn.disabled = false;
-              });
+            if (sheetEndpoint && sheetToken) {
+              submitToGoogleSheet(sheetEndpoint, payload)
+                .then(goWhatsApp)
+                .catch(goWhatsApp);
+            } else {
+              goWhatsApp();
+            }
           });
         }
 
