@@ -1652,16 +1652,30 @@
       }
 
       @media (max-width: 767px) {
+        :root {
+          --announcement-bar-h: 34px;
+          --site-header-h: 58px;
+          --hero-top-safe: calc(var(--below-fixed-header) + 8px);
+          --scroll-anchor-offset: calc(
+            var(--announcement-bar-h) + var(--safe-top) + var(--site-header-h) + 8px
+          );
+        }
+
         html {
           -webkit-text-size-adjust: 100%;
         }
 
         .announcement-bar {
+          min-height: calc(var(--announcement-bar-h) + var(--safe-top));
+          padding-top: max(6px, var(--safe-top));
+          padding-bottom: 6px;
+          font-size: 0.78rem;
+          line-height: 1.3;
           padding-inline: max(14px, env(safe-area-inset-left)) max(14px, env(safe-area-inset-right));
         }
 
         .site-logo {
-          height: 38px;
+          height: 30px;
         }
 
         .hero-media img {
