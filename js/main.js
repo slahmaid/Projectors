@@ -13,6 +13,10 @@
           var btnMinus = form.querySelector(".qty-minus-btn");
           var btnPlus = form.querySelector(".qty-plus-btn");
           var totalAmountEl = form.querySelector(".quantity-total-amount");
+          var submitBtn = form.querySelector(".btn-submit-order");
+          var statusEl = form.querySelector(".form-submit-status");
+          var endpoint = (form.getAttribute("data-sheet-endpoint") || "").trim();
+          var sheetToken = (form.getAttribute("data-sheet-token") || "").trim();
 
           function formatDhAmount(n) {
             var num = parseInt(String(n), 10);
@@ -53,6 +57,53 @@
             if (isNaN(qty) || qty < 1) qty = 1;
             if (isNaN(unit)) return;
             totalAmountEl.textContent = formatDhAmount(String(unit * qty));
+          }
+
+          function setStatus(message, kind) {
+            if (!statusEl) return;
+            statusEl.textContent = message || "";
+            statusEl.classList.remove("is-success", "is-error");
+            if (kind) statusEl.classList.add(kind);
+          }
+
+          function getOrderPayload() {
+            var checked = form.querySelector(".variant-row input[type='radio']:checked");
+            var model = checked ? checked.value.toUpperCase() : "";
+            var priceUnit = checked ? parseInt(String(checked.dataset.priceSale), 10) : 0;
+            var qty = qtyInput ? parseInt(qtyInput.value, 10) : 1;
+            if (isNaN(qty) || qty < 1) qty = 1;
+            var total = isNaN(priceUnit) ? 0 : priceUnit * qty;
+
+            return {
+              model: model,
+              quantity: qty,
+              price: total,
+              price_unit: isNaN(priceUnit) ? "" : priceUnit,
+              fullname: (form.querySelector("input[name='fullname'], input[name='fullname_rt']") || {}).value || "",
+              city: (form.querySelector("input[name='city'], input[name='city_rt']") || {}).value || "",
+              address: (form.querySelector("input[name='address'], input[name='address_rt']") || {}).value || "",
+              phone: (form.querySelector("input[name='phone'], input[name='phone_rt']") || {}).value || "",
+              honeypot: (form.querySelector("input[name='website']") || {}).value || "",
+              token: sheetToken,
+              form_id: form.id || "order-form",
+              page_url: window.location.href
+            };
+          }
+
+          async function submitToSheet(payload) {
+            if (!endpoint) {
+              throw new Error("MISSING_ENDPOINT");
+            }
+
+            var res = await fetch(endpoint, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(payload)
+            });
+
+            if (!res.ok) {
+              throw new Error("HTTP_" + res.status);
+            }
           }
 
           function syncVariantImage() {
@@ -105,6 +156,26 @@
 
           form.addEventListener("submit", function (e) {
             e.preventDefault();
+            if (!form.reportValidity()) return;
+
+            var payload = getOrderPayload();
+            if (payload.honeypot) return;
+            if (submitBtn) submitBtn.disabled = true;
+            setStatus("جاري إرسال الطلب...", "");
+
+            submitToSheet(payload)
+              .then(function () {
+                setStatus("تم إرسال طلبك بنجاح. سنتواصل معك قريباً.", "is-success");
+                form.reset();
+                syncPrice();
+                syncVariantImage();
+              })
+              .catch(function () {
+                setStatus("تعذّر الإرسال حالياً. حاول مجدداً بعد لحظات.", "is-error");
+              })
+              .finally(function () {
+                if (submitBtn) submitBtn.disabled = false;
+              });
           });
         }
 

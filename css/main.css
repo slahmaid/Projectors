@@ -938,6 +938,23 @@
         text-align: center;
       }
 
+      .form-submit-status {
+        margin: 6px 0 0;
+        min-height: 1.2em;
+        font-size: 0.76rem;
+        font-weight: 700;
+        line-height: 1.35;
+        text-align: center;
+      }
+
+      .form-submit-status.is-success {
+        color: #166534;
+      }
+
+      .form-submit-status.is-error {
+        color: #b91c1c;
+      }
+
       .btn-submit-order {
         width: 100%;
         min-height: 50px;
@@ -999,6 +1016,15 @@
         background: #f8fafc;
         color: #111827;
         transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+      }
+
+      .hp-field {
+        position: absolute !important;
+        left: -9999px !important;
+        width: 1px;
+        height: 1px;
+        opacity: 0;
+        pointer-events: none;
       }
 
       .form-field input[type="text"]:focus,
