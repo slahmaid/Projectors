@@ -1,4 +1,4 @@
-﻿      (function () {
+      (function () {
         function initOrderForm(form) {
           var saleTarget = form.getAttribute("data-price-sale-target");
           var compareTarget = form.getAttribute("data-price-compare-target");
@@ -130,4 +130,37 @@
         } else {
           syncHeader();
         }
+      })();
+
+      (function () {
+        var orderSection = document.getElementById("order");
+        if (!orderSection) return;
+        if (sessionStorage.getItem("order_snap_done") === "1") return;
+        var lastY = window.scrollY || 0;
+        var snapped = false;
+
+        function getOffset() {
+          var raw = getComputedStyle(document.documentElement).getPropertyValue("--scroll-anchor-offset");
+          var n = parseFloat(raw);
+          return isNaN(n) ? 120 : n;
+        }
+
+        function maybeSnapToOrder() {
+          if (snapped) return;
+          var y = window.scrollY || window.pageYOffset || 0;
+          var movingDown = y > lastY;
+          lastY = y;
+          if (!movingDown || y < 60) return;
+
+          var rect = orderSection.getBoundingClientRect();
+          var triggerLine = window.innerHeight * 0.32;
+          if (rect.top > 0 && rect.top < triggerLine) {
+            snapped = true;
+            sessionStorage.setItem("order_snap_done", "1");
+            var targetTop = y + rect.top - getOffset();
+            window.scrollTo({ top: Math.max(0, targetTop), behavior: "smooth" });
+          }
+        }
+
+        window.addEventListener("scroll", maybeSnapToOrder, { passive: true });
       })();
