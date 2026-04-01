@@ -15,9 +15,7 @@ Static Arabic RTL landing page: order forms, pricing, FAQ, and SEO JSON-LD.
 | `privacy.html` | سياسة الخصوصية |
 | `terms.html` | شروط الاستخدام |
 | `preview.html` | Redirect to `index.html` (legacy bookmark) |
-| `backend/src/server.js` | Orders API backend (save/manage orders) |
-| `backend/data/orders.db` | SQLite database for orders |
-| `backend/data/orders.csv` | CSV export file (sheet-friendly) |
+| `backend/google-apps-script/Code.gs` | Google Sheets webhook (Apps Script) |
 
 ## Run locally
 
@@ -29,35 +27,30 @@ npx --yes serve .
 
 Then open the URL shown (e.g. `http://localhost:3000`).
 
-## Backend orders system (no admin panel)
-
-The backend is simple and strong: it stores each order in SQLite and appends to a CSV file for easy management in Excel/Sheets.
-
-### Start backend
-
-```bash
-cd backend
-npm install
-npm start
-```
-
-Backend runs on `http://localhost:4000`.
-
-### Endpoints
-
-- `POST /api/orders` -> store a new order
-- `GET /api/orders?limit=500` -> read latest orders (read-only)
-- `GET /api/orders.csv` -> download CSV file directly
-- `GET /manage` -> simple read-only orders page
-
-### Frontend integration
-
-Both order forms send to:
-
-- `data-order-endpoint="http://localhost:4000/api/orders"`
-
-After successful save, customer is redirected to WhatsApp confirmation chat automatically.
-
 ## Optional React scaffold
 
 The `src/components/` folder holds a small header example that imports `assets/logo.svg`. It is not wired to the static HTML build; use it only if you add a bundler (e.g. Vite + React).
+
+## Google Sheets + WhatsApp (both active)
+
+Forms now support dual behavior:
+
+- Send order data to Google Sheets endpoint (if configured)
+- Redirect customer to WhatsApp confirmation chat
+
+### Apps Script setup
+
+1. Create a Google Sheet and open **Extensions -> Apps Script**.
+2. Paste `backend/google-apps-script/Code.gs`.
+3. Change `SECRET_TOKEN` in the script.
+4. Deploy as **Web app** (execute as: Me, access: Anyone).
+5. Copy Web app URL.
+
+### Connect forms
+
+In `index.html`, set these attributes on both forms (`#order-form` and `#order-form-retarget`):
+
+- `data-sheet-endpoint="YOUR_WEB_APP_URL"`
+- `data-sheet-token="YOUR_SECRET_TOKEN"`
+
+If these are empty, WhatsApp redirect still works and Sheet submission is skipped.

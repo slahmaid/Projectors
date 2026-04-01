@@ -119,11 +119,48 @@
             return (telLink.getAttribute("href") || "").replace("tel:", "").replace(/\D/g, "") || "212600000000";
           }
 
-          function getOrderEndpoint() {
-            var byForm = form.getAttribute("data-order-endpoint");
-            if (byForm) return byForm;
-            if (window.ORDER_API_URL) return window.ORDER_API_URL;
-            return "http://localhost:4000/api/orders";
+          function getSheetConfig() {
+            return {
+              endpoint: (form.getAttribute("data-sheet-endpoint") || "").trim(),
+              token: (form.getAttribute("data-sheet-token") || "").trim()
+            };
+          }
+
+          function postOrderToSheet(payload, sheetConfig) {
+            if (!sheetConfig.endpoint || !sheetConfig.token) return Promise.resolve(false);
+
+            var body = JSON.stringify(payload);
+            var isAppsScript = /script\.google\.com\/macros\/s\//i.test(sheetConfig.endpoint);
+
+            // no-cors text/plain avoids most preflight/CORS issues on Apps Script web apps.
+            if (isAppsScript) {
+              return fetch(sheetConfig.endpoint, {
+                method: "POST",
+                mode: "no-cors",
+                headers: { "Content-Type": "text/plain;charset=utf-8" },
+                body: body,
+                keepalive: true
+              })
+                .then(function () {
+                  return true;
+                })
+                .catch(function () {
+                  return false;
+                });
+            }
+
+            return fetch(sheetConfig.endpoint, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: body,
+              keepalive: true
+            })
+              .then(function (res) {
+                return res.ok;
+              })
+              .catch(function () {
+                return false;
+              });
           }
 
           form.addEventListener("submit", function (e) {
@@ -143,8 +180,27 @@
             var phone = getFieldValue(["#phone", "#phone-retarget", "input[name='phone']", "input[name='phone_rt']"]);
             var total = totalAmountEl ? totalAmountEl.textContent.trim() : "-";
             var whatsappNumber = getWhatsAppNumber();
+            var sheetConfig = getSheetConfig();
             var sourceForm = form.id || "order-form";
-            var endpoint = getOrderEndpoint();
+            var priceValue = checked && checked.dataset.priceSale ? parseInt(String(checked.dataset.priceSale), 10) : 0;
+            if (!priceValue || isNaN(priceValue)) priceValue = 0;
+            var quantityValue = parseInt(qty, 10);
+            if (!quantityValue || isNaN(quantityValue)) quantityValue = 1;
+
+            var sheetPayload = {
+              token: sheetConfig.token,
+              model: model,
+              quantity: quantityValue,
+              price: priceValue * quantityValue,
+              price_unit: priceValue,
+              fullname: fullname,
+              city: city,
+              address: address,
+              phone: phone,
+              source_form: sourceForm,
+              page_url: window.location.href
+            };
+
             var message =
               "السلام عليكم، أريد تأكيد هذا الطلب:\n" +
               "- الموديل: " + model + "\n" +
@@ -155,30 +211,10 @@
               "- المدينة: " + city + "\n" +
               "- العنوان: " + address + "\n" +
               "- الهاتف: " + phone;
-            var payload = {
-              model: model,
-              quantity: Number.parseInt(qty, 10) || 1,
-              unitPrice: Number.parseInt(checked && checked.dataset.priceSale ? checked.dataset.priceSale : "0", 10) || 0,
-              fullname: fullname,
-              city: city,
-              address: address,
-              phone: phone,
-              sourceForm: sourceForm
-            };
 
-            fetch(endpoint, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(payload)
-            })
-              .then(function (res) {
-                if (!res.ok) throw new Error("ORDER_SAVE_FAILED");
-                window.location.href =
-                  "https://wa.me/" + whatsappNumber + "?text=" + encodeURIComponent(message);
-              })
-              .catch(function () {
-                alert("تعذّر تسجيل الطلب حالياً. حاول مرة أخرى بعد لحظات.");
-              });
+            postOrderToSheet(sheetPayload, sheetConfig).finally(function () {
+              window.location.href = "https://wa.me/" + whatsappNumber + "?text=" + encodeURIComponent(message);
+            });
           });
         }
 
