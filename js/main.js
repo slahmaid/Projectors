@@ -13,11 +13,6 @@
           var btnMinus = form.querySelector(".qty-minus-btn");
           var btnPlus = form.querySelector(".qty-plus-btn");
           var totalAmountEl = form.querySelector(".quantity-total-amount");
-          var submitBtn = form.querySelector(".btn-submit-order");
-          var statusEl = form.querySelector(".form-submit-status");
-          var endpoint = (form.getAttribute("data-sheet-endpoint") || "").trim();
-          var sheetToken = (form.getAttribute("data-sheet-token") || "").trim();
-          var whatsappNumber = (form.getAttribute("data-whatsapp-number") || "").trim();
 
           function formatDhAmount(n) {
             var num = parseInt(String(n), 10);
@@ -58,86 +53,6 @@
             if (isNaN(qty) || qty < 1) qty = 1;
             if (isNaN(unit)) return;
             totalAmountEl.textContent = formatDhAmount(String(unit * qty));
-          }
-
-          function setStatus(message, kind) {
-            if (!statusEl) return;
-            statusEl.textContent = message || "";
-            statusEl.classList.remove("is-success", "is-error");
-            if (kind) statusEl.classList.add(kind);
-          }
-
-          function getOrderPayload() {
-            var checked = form.querySelector(".variant-row input[type='radio']:checked");
-            var model = checked ? checked.value.toUpperCase() : "";
-            var priceUnit = checked ? parseInt(String(checked.dataset.priceSale), 10) : 0;
-            var qty = qtyInput ? parseInt(qtyInput.value, 10) : 1;
-            if (isNaN(qty) || qty < 1) qty = 1;
-            var total = isNaN(priceUnit) ? 0 : priceUnit * qty;
-
-            return {
-              model: model,
-              quantity: qty,
-              price: total,
-              price_unit: isNaN(priceUnit) ? "" : priceUnit,
-              fullname: (form.querySelector("input[name='fullname'], input[name='fullname_rt']") || {}).value || "",
-              city: (form.querySelector("input[name='city'], input[name='city_rt']") || {}).value || "",
-              address: (form.querySelector("input[name='address'], input[name='address_rt']") || {}).value || "",
-              phone: (form.querySelector("input[name='phone'], input[name='phone_rt']") || {}).value || "",
-              honeypot: (form.querySelector("input[name='website']") || {}).value || "",
-              token: sheetToken,
-              form_id: form.id || "order-form",
-              page_url: window.location.href
-            };
-          }
-
-          async function submitToSheet(payload) {
-            if (!endpoint) {
-              throw new Error("MISSING_ENDPOINT");
-            }
-
-            var isGoogleScript = /script\.google\.com\/macros\/s\//i.test(endpoint);
-            if (isGoogleScript) {
-              // Apps Script web apps frequently fail CORS checks with normal JSON fetch.
-              // no-cors with text/plain avoids preflight and still delivers payload.
-              await fetch(endpoint, {
-                method: "POST",
-                mode: "no-cors",
-                headers: { "Content-Type": "text/plain;charset=utf-8" },
-                body: JSON.stringify(payload)
-              });
-              return;
-            }
-
-            var res = await fetch(endpoint, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(payload)
-            });
-
-            if (!res.ok) {
-              throw new Error("HTTP_" + res.status);
-            }
-          }
-
-          function redirectToWhatsApp(payload) {
-            if (!whatsappNumber) return;
-            var cleanNumber = whatsappNumber.replace(/[^\d]/g, "");
-            if (!cleanNumber) return;
-
-            var message = [
-              "السلام عليكم، أؤكد طلبي:",
-              "الموديل: " + payload.model,
-              "الكمية: " + payload.quantity,
-              "السعر الإجمالي: " + payload.price + " د.م",
-              "الاسم الكامل: " + payload.fullname,
-              "المدينة: " + payload.city,
-              "العنوان: " + payload.address,
-              "رقم الهاتف: " + payload.phone
-            ].join("\n");
-
-            var url = "https://wa.me/" + cleanNumber + "?text=" + encodeURIComponent(message);
-            window.location.href = url;
           }
 
           function syncVariantImage() {
@@ -188,31 +103,51 @@
             qtyInput.addEventListener("input", syncTotal);
           }
 
+          function getFieldValue(candidates) {
+            for (var i = 0; i < candidates.length; i += 1) {
+              var el = form.querySelector(candidates[i]);
+              if (el && el.value) return el.value.trim();
+            }
+            return "";
+          }
+
+          function getWhatsAppNumber() {
+            var byForm = form.getAttribute("data-whatsapp-number");
+            if (byForm) return byForm.replace(/\D/g, "");
+            var telLink = document.querySelector(".site-footer-phone a[href^='tel:']");
+            if (!telLink) return "212600000000";
+            return (telLink.getAttribute("href") || "").replace("tel:", "").replace(/\D/g, "") || "212600000000";
+          }
+
           form.addEventListener("submit", function (e) {
             e.preventDefault();
-            if (!form.reportValidity()) return;
+            if (!form.checkValidity()) {
+              form.reportValidity();
+              return;
+            }
 
-            var payload = getOrderPayload();
-            if (payload.honeypot) return;
-            if (submitBtn) submitBtn.disabled = true;
-            setStatus("جاري إرسال الطلب...", "");
+            var checked = form.querySelector(".variant-row input[type='radio']:checked");
+            var model = checked ? (checked.value || "").toUpperCase() : "";
+            var unitPrice = checked && checked.dataset.priceSale ? checked.dataset.priceSale + " د.م" : "-";
+            var qty = qtyInput ? qtyInput.value : "1";
+            var fullname = getFieldValue(["#fullname", "#fullname-retarget", "input[name='fullname']", "input[name='fullname_rt']"]);
+            var city = getFieldValue(["#city", "#city-retarget", "input[name='city']", "input[name='city_rt']"]);
+            var address = getFieldValue(["#address", "#address-retarget", "input[name='address']", "input[name='address_rt']"]);
+            var phone = getFieldValue(["#phone", "#phone-retarget", "input[name='phone']", "input[name='phone_rt']"]);
+            var total = totalAmountEl ? totalAmountEl.textContent.trim() : "-";
+            var whatsappNumber = getWhatsAppNumber();
+            var message =
+              "السلام عليكم، أريد تأكيد هذا الطلب:\n" +
+              "- الموديل: " + model + "\n" +
+              "- الكمية: " + qty + "\n" +
+              "- السعر للوحدة: " + unitPrice + "\n" +
+              "- المجموع: " + total + "\n" +
+              "- الاسم: " + fullname + "\n" +
+              "- المدينة: " + city + "\n" +
+              "- العنوان: " + address + "\n" +
+              "- الهاتف: " + phone;
 
-            submitToSheet(payload)
-              .then(function () {
-                setStatus("تم إرسال طلبك بنجاح. سنتواصل معك قريباً.", "is-success");
-                form.reset();
-                syncPrice();
-                syncVariantImage();
-                setTimeout(function () {
-                  redirectToWhatsApp(payload);
-                }, 450);
-              })
-              .catch(function () {
-                setStatus("تعذّر الإرسال حالياً. حاول مجدداً بعد لحظات.", "is-error");
-              })
-              .finally(function () {
-                if (submitBtn) submitBtn.disabled = false;
-              });
+            window.location.href = "https://wa.me/" + whatsappNumber + "?text=" + encodeURIComponent(message);
           });
         }
 
