@@ -134,23 +134,34 @@
             window.location.href = "https://wa.me/" + whatsappNumber + "?text=" + encodeURIComponent(message);
           }
 
-          function submitToGoogleSheet(endpoint, payload) {
+          function sendOrderToSheetFireAndForget(endpoint, payload) {
+            var body = JSON.stringify(payload);
             var isAppsScript = /script\.google\.com\/macros\/s\//i.test(endpoint);
-            if (isAppsScript) {
-              return fetch(endpoint, {
+            try {
+              if (typeof fetch !== "function") {
+                return;
+              }
+              if (isAppsScript) {
+                fetch(endpoint, {
+                  method: "POST",
+                  mode: "no-cors",
+                  cache: "no-store",
+                  keepalive: true,
+                  headers: { "Content-Type": "text/plain;charset=utf-8" },
+                  body: body
+                }).catch(function () {});
+                return;
+              }
+              fetch(endpoint, {
                 method: "POST",
-                mode: "no-cors",
-                headers: { "Content-Type": "text/plain;charset=utf-8" },
-                body: JSON.stringify(payload)
-              });
+                cache: "no-store",
+                keepalive: true,
+                headers: { "Content-Type": "application/json" },
+                body: body
+              }).catch(function () {});
+            } catch (err) {
+              /* ignore — WhatsApp redirect still runs */
             }
-            return fetch(endpoint, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(payload)
-            }).then(function (res) {
-              if (!res.ok) throw new Error("HTTP_" + res.status);
-            });
           }
 
           form.addEventListener("submit", function (e) {
@@ -160,7 +171,7 @@
               return;
             }
 
-            var hpEl = form.querySelector("input[name='website']");
+            var hpEl = form.querySelector("input[name='hp_field']");
             if (hpEl && String(hpEl.value || "").trim()) {
               return;
             }
@@ -183,7 +194,7 @@
             var sheetToken = (form.getAttribute("data-sheet-token") || "").trim();
             var payload = {
               token: sheetToken,
-              honeypot: "",
+              honeypot: hpEl ? String(hpEl.value || "").trim() : "",
               model: model,
               quantity: qtyNum,
               price: totalMAD,
@@ -199,13 +210,14 @@
               redirectWhatsApp(model, unitPriceStr, qty, total, fullname, city, address, phone);
             }
 
-            if (sheetEndpoint && sheetToken) {
-              submitToGoogleSheet(sheetEndpoint, payload)
-                .then(goWhatsApp)
-                .catch(goWhatsApp);
-            } else {
-              goWhatsApp();
+            try {
+              if (sheetEndpoint && sheetToken) {
+                sendOrderToSheetFireAndForget(sheetEndpoint, payload);
+              }
+            } catch (err2) {
+              /* still open WhatsApp */
             }
+            window.setTimeout(goWhatsApp, 0);
           });
         }
 
