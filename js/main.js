@@ -17,6 +17,7 @@
           var statusEl = form.querySelector(".form-submit-status");
           var endpoint = (form.getAttribute("data-sheet-endpoint") || "").trim();
           var sheetToken = (form.getAttribute("data-sheet-token") || "").trim();
+          var whatsappNumber = (form.getAttribute("data-whatsapp-number") || "").trim();
 
           function formatDhAmount(n) {
             var num = parseInt(String(n), 10);
@@ -94,19 +95,6 @@
             if (!endpoint) {
               throw new Error("MISSING_ENDPOINT");
             }
-            var isGoogleScript = /script\.google\.com\/macros\/s\//i.test(endpoint);
-
-            // Google Apps Script web apps often fail CORS checks with normal fetch.
-            // For those endpoints, use no-cors + text/plain to avoid preflight/CORS blocking.
-            if (isGoogleScript) {
-              await fetch(endpoint, {
-                method: "POST",
-                mode: "no-cors",
-                headers: { "Content-Type": "text/plain;charset=utf-8" },
-                body: JSON.stringify(payload)
-              });
-              return;
-            }
 
             var res = await fetch(endpoint, {
               method: "POST",
@@ -117,6 +105,26 @@
             if (!res.ok) {
               throw new Error("HTTP_" + res.status);
             }
+          }
+
+          function redirectToWhatsApp(payload) {
+            if (!whatsappNumber) return;
+            var cleanNumber = whatsappNumber.replace(/[^\d]/g, "");
+            if (!cleanNumber) return;
+
+            var message = [
+              "السلام عليكم، أؤكد طلبي:",
+              "الموديل: " + payload.model,
+              "الكمية: " + payload.quantity,
+              "السعر الإجمالي: " + payload.price + " د.م",
+              "الاسم الكامل: " + payload.fullname,
+              "المدينة: " + payload.city,
+              "العنوان: " + payload.address,
+              "رقم الهاتف: " + payload.phone
+            ].join("\n");
+
+            var url = "https://wa.me/" + cleanNumber + "?text=" + encodeURIComponent(message);
+            window.location.href = url;
           }
 
           function syncVariantImage() {
@@ -182,9 +190,9 @@
                 form.reset();
                 syncPrice();
                 syncVariantImage();
-                window.setTimeout(function () {
-                  window.location.href = "/thank-you";
-                }, 500);
+                setTimeout(function () {
+                  redirectToWhatsApp(payload);
+                }, 450);
               })
               .catch(function () {
                 setStatus("تعذّر الإرسال حالياً. حاول مجدداً بعد لحظات.", "is-error");
