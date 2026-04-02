@@ -119,36 +119,6 @@
             return (telLink.getAttribute("href") || "").replace("tel:", "").replace(/\D/g, "") || "212600000000";
           }
 
-          function sendOrderToSheet(payload) {
-            var endpoint = (form.getAttribute("data-sheet-endpoint") || "").trim();
-            var token = (form.getAttribute("data-sheet-token") || "").trim();
-            if (!endpoint || !token) return Promise.resolve();
-
-            var body = {
-              token: token,
-              model: payload.model,
-              quantity: payload.quantity,
-              unitPrice: payload.unitPrice,
-              total: payload.totalNumeric,
-              fullname: payload.fullname,
-              city: payload.city,
-              address: payload.address,
-              phone: payload.phone,
-              source: form.id || "landing-form"
-            };
-
-            // Apps Script web apps often require no-cors + text/plain to avoid preflight issues.
-            return fetch(endpoint, {
-              method: "POST",
-              mode: "no-cors",
-              headers: { "Content-Type": "text/plain;charset=utf-8" },
-              body: JSON.stringify(body),
-              keepalive: true
-            }).catch(function () {
-              return null;
-            });
-          }
-
           form.addEventListener("submit", function (e) {
             e.preventDefault();
             if (!form.checkValidity()) {
@@ -158,17 +128,13 @@
 
             var checked = form.querySelector(".variant-row input[type='radio']:checked");
             var model = checked ? (checked.value || "").toUpperCase() : "";
-            var unitPriceNum = checked && checked.dataset.priceSale ? parseInt(String(checked.dataset.priceSale), 10) : 0;
-            var unitPrice = unitPriceNum > 0 ? unitPriceNum + " د.م" : "-";
+            var unitPrice = checked && checked.dataset.priceSale ? checked.dataset.priceSale + " د.م" : "-";
             var qty = qtyInput ? qtyInput.value : "1";
             var fullname = getFieldValue(["#fullname", "#fullname-retarget", "input[name='fullname']", "input[name='fullname_rt']"]);
             var city = getFieldValue(["#city", "#city-retarget", "input[name='city']", "input[name='city_rt']"]);
             var address = getFieldValue(["#address", "#address-retarget", "input[name='address']", "input[name='address_rt']"]);
             var phone = getFieldValue(["#phone", "#phone-retarget", "input[name='phone']", "input[name='phone_rt']"]);
             var total = totalAmountEl ? totalAmountEl.textContent.trim() : "-";
-            var qtyNum = parseInt(String(qty), 10);
-            if (isNaN(qtyNum) || qtyNum < 1) qtyNum = 1;
-            var totalNumeric = unitPriceNum > 0 ? unitPriceNum * qtyNum : 0;
             var whatsappNumber = getWhatsAppNumber();
             var message =
               "السلام عليكم، أريد تأكيد هذا الطلب:\n" +
@@ -181,20 +147,7 @@
               "- العنوان: " + address + "\n" +
               "- الهاتف: " + phone;
 
-            var payload = {
-              model: model,
-              quantity: qtyNum,
-              unitPrice: unitPriceNum,
-              totalNumeric: totalNumeric,
-              fullname: fullname,
-              city: city,
-              address: address,
-              phone: phone
-            };
-
-            sendOrderToSheet(payload).finally(function () {
-              window.location.href = "https://wa.me/" + whatsappNumber + "?text=" + encodeURIComponent(message);
-            });
+            window.location.href = "https://wa.me/" + whatsappNumber + "?text=" + encodeURIComponent(message);
           });
         }
 
