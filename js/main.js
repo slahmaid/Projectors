@@ -206,10 +206,13 @@
             clearSubmitStatus();
             if (submitBtn) submitBtn.disabled = true;
             try {
+              var formBody = new URLSearchParams();
+              Object.keys(payload).forEach(function (key) {
+                formBody.append(key, payload[key]);
+              });
               var res = await fetch(endpoint, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload)
+                body: formBody
               });
               if (!res.ok) throw new Error("ORDER_SUBMIT_FAILED");
 

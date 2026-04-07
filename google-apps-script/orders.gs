@@ -8,7 +8,7 @@ const ADMIN_TOKEN = PropertiesService.getScriptProperties().getProperty('ORDER_A
 
 function doPost(e) {
   try {
-    const data = JSON.parse(e.postData.contents || '{}');
+    const data = parsePostData_(e);
     const sheet = getOrCreateSheet_();
 
     if (!data.model || !data.quantity || !data.fullname || !data.city || !data.address || !data.phone) {
@@ -34,6 +34,25 @@ function doPost(e) {
   } catch (err) {
     return json_({ ok: false, error: 'POST_FAILED' }, 500);
   }
+}
+
+function parsePostData_(e) {
+  const fallback = (e && e.parameter) ? e.parameter : {};
+  if (!e || !e.postData || !e.postData.contents) return fallback;
+
+  const raw = String(e.postData.contents || '');
+  const type = String((e.postData.type || '')).toLowerCase();
+
+  if (type.indexOf('application/json') !== -1) {
+    try {
+      return JSON.parse(raw || '{}');
+    } catch (err) {
+      return fallback;
+    }
+  }
+
+  // Support x-www-form-urlencoded payloads from static frontend fetch.
+  return Object.assign({}, fallback);
 }
 
 function doGet(e) {
