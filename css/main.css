@@ -938,6 +938,22 @@
         text-align: center;
       }
 
+      .form-submit-status {
+        margin: 8px 0 0;
+        min-height: 1.3em;
+        font-size: 0.82rem;
+        line-height: 1.4;
+        text-align: center;
+      }
+
+      .form-submit-status.is-success {
+        color: #166534;
+      }
+
+      .form-submit-status.is-error {
+        color: #b91c1c;
+      }
+
       .btn-submit-order {
         width: 100%;
         min-height: 50px;
@@ -961,6 +977,10 @@
         }
 
         .form-submit-note {
+          text-align: start;
+        }
+
+        .form-submit-status {
           text-align: start;
         }
       }

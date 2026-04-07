@@ -47,7 +47,7 @@
       }
     </script>
   </head>
-  <body data-api-base="http://localhost:3000">
+  <body>
     <div class="announcement-bar" role="status">توصيل مجاني إلى جميع أنحاء المغرب</div>
     <header class="site-header site-header--at-top" id="site-header">
       <img src="assets/logo.svg" alt="العلامة — بروجكتور شمسي" class="site-logo" />
@@ -128,6 +128,7 @@
           id="order-form"
           action="#"
           method="post"
+          data-order-endpoint="https://script.google.com/macros/s/AKfycbyHJLwlEJKJeYftPRDqtzC10n_spkdDRF63v5fSYenp-5O6g3bIG9aPD_oUS7fGwKdz/exec"
           data-price-sale-target="order-price-sale"
           data-price-compare-target="order-price-compare"
           data-discount-target="order-price-discount"
@@ -226,6 +227,7 @@
                   <span class="form-submit-spacer" aria-hidden="true">.</span>
                   <button type="submit" class="btn btn-primary btn-submit-order">أكّد طلبي الآن</button>
                   <p class="form-submit-note">يرجى إبقاء هاتفك متاحاً لتأكيد الطلب.</p>
+                  <p class="form-submit-status" aria-live="polite"></p>
                 </div>
               </div>
             </div>
@@ -595,6 +597,7 @@
           id="order-form-retarget"
           action="#"
           method="post"
+          data-order-endpoint="https://script.google.com/macros/s/AKfycbyHJLwlEJKJeYftPRDqtzC10n_spkdDRF63v5fSYenp-5O6g3bIG9aPD_oUS7fGwKdz/exec"
           data-price-sale-target="order-rt-price-sale"
           data-price-compare-target="order-rt-price-compare"
           data-discount-target="order-rt-price-discount"
@@ -698,6 +701,7 @@
                   <span class="form-submit-spacer" aria-hidden="true">.</span>
                   <button type="submit" class="btn btn-primary btn-submit-order">أكّد طلبي الآن</button>
                   <p class="form-submit-note">بعد الإرسال، سنتواصل معك لتأكيد كل التفاصيل.</p>
+                  <p class="form-submit-status" aria-live="polite"></p>
                 </div>
               </div>
             </div>
@@ -825,8 +829,8 @@
             <a href="tel:+212600000000">06&nbsp;00&nbsp;00&nbsp;00&nbsp;00</a>
           </p>
           <div class="footer-legal">
-            <a href="/privacy">سياسة الخصوصية</a>
-            <a href="/terms">شروط الاستخدام</a>
+            <a href="privacy.html">سياسة الخصوصية</a>
+            <a href="terms.html">شروط الاستخدام</a>
             <a href="#faq-heading">الأسئلة الشائعة</a>
           </div>
         </div>

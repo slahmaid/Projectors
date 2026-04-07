@@ -111,14 +111,53 @@
             return "";
           }
 
-          function getApiBaseUrl() {
-            var byForm = form.getAttribute("data-api-base");
-            var byBody = document.body.getAttribute("data-api-base");
-            var raw = byForm || byBody || "http://localhost:3000";
-            return raw.replace(/\/$/, "");
+          function getFieldElement(candidates) {
+            for (var i = 0; i < candidates.length; i += 1) {
+              var el = form.querySelector(candidates[i]);
+              if (el) return el;
+            }
+            return null;
           }
 
-          form.addEventListener("submit", function (e) {
+          function normalizeDigits(value) {
+            return String(value || "")
+              .replace(/[٠-٩]/g, function (d) { return String(d.charCodeAt(0) - 1632); })
+              .replace(/[۰-۹]/g, function (d) { return String(d.charCodeAt(0) - 1776); });
+          }
+
+          function normalizePhone(raw) {
+            return normalizeDigits(raw).replace(/[^\d+]/g, "");
+          }
+
+          function isValidMoroccanPhone(raw) {
+            var phone = normalizePhone(raw);
+            if (/^(\+212|212)([5-7]\d{8})$/.test(phone)) return true;
+            if (/^0([5-7]\d{8})$/.test(phone)) return true;
+            return false;
+          }
+
+          function getOrderEndpoint() {
+            var byForm = form.getAttribute("data-order-endpoint");
+            if (byForm) return byForm;
+            return "/api/orders";
+          }
+
+          function setSubmitStatus(message, isError) {
+            var statusEl = form.querySelector(".form-submit-status");
+            if (!statusEl) return;
+            statusEl.textContent = message;
+            statusEl.classList.remove("is-success", "is-error");
+            statusEl.classList.add(isError ? "is-error" : "is-success");
+          }
+
+          function clearSubmitStatus() {
+            var statusEl = form.querySelector(".form-submit-status");
+            if (!statusEl) return;
+            statusEl.textContent = "";
+            statusEl.classList.remove("is-success", "is-error");
+          }
+
+          form.addEventListener("submit", async function (e) {
             e.preventDefault();
             if (!form.checkValidity()) {
               form.reportValidity();
@@ -133,46 +172,56 @@
             var city = getFieldValue(["#city", "#city-retarget", "input[name='city']", "input[name='city_rt']"]);
             var address = getFieldValue(["#address", "#address-retarget", "input[name='address']", "input[name='address_rt']"]);
             var phone = getFieldValue(["#phone", "#phone-retarget", "input[name='phone']", "input[name='phone_rt']"]);
+            var phoneEl = getFieldElement(["#phone", "#phone-retarget", "input[name='phone']", "input[name='phone_rt']"]);
             var total = totalAmountEl ? totalAmountEl.textContent.trim() : "-";
+            var endpoint = getOrderEndpoint();
+            var submitBtn = form.querySelector("button[type='submit']");
+
+            if (phoneEl) phoneEl.setCustomValidity("");
+            if (!isValidMoroccanPhone(phone)) {
+              var errText = "يرجى إدخال رقم هاتف مغربي صحيح (مثال: 06XXXXXXXX أو +2126XXXXXXXX).";
+              if (phoneEl) {
+                phoneEl.setCustomValidity(errText);
+                phoneEl.reportValidity();
+              } else {
+                setSubmitStatus(errText, true);
+              }
+              return;
+            }
+
             var payload = {
               model: model,
-              quantity: parseInt(qty, 10) || 1,
-              unitPrice: parseInt((checked && checked.dataset.priceSale) || "0", 10) || 0,
-              totalPrice: parseInt(String(total).replace(/[^\d]/g, ""), 10) || 0,
+              quantity: qty,
+              unitPrice: unitPrice,
+              total: total,
               fullname: fullname,
               city: city,
               address: address,
-              phone: phone,
-              sourceForm: form.id || "unknown"
+              phone: normalizePhone(phone),
+              formId: form.id || "order-form",
+              pageUrl: window.location.href,
+              submittedAt: new Date().toISOString()
             };
 
-            var submitBtn = form.querySelector("button[type='submit']");
+            clearSubmitStatus();
             if (submitBtn) submitBtn.disabled = true;
-
-            fetch(getApiBaseUrl() + "/api/orders", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(payload)
-            })
-              .then(function (res) {
-                if (!res.ok) throw new Error("submit_failed");
-                return res.json();
-              })
-              .then(function () {
-                alert("تم استلام طلبك بنجاح. سنتواصل معك قريباً للتأكيد.");
-                form.reset();
-                if (qtyInput) qtyInput.value = "1";
-                var firstOption = form.querySelector(".variant-row input[type='radio']");
-                if (firstOption) firstOption.checked = true;
-                syncPrice();
-                syncVariantImage();
-              })
-              .catch(function () {
-                alert("تعذر إرسال الطلب حالياً. حاول مرة أخرى بعد قليل.");
-              })
-              .finally(function () {
-                if (submitBtn) submitBtn.disabled = false;
+            try {
+              var res = await fetch(endpoint, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
               });
+              if (!res.ok) throw new Error("ORDER_SUBMIT_FAILED");
+
+              setSubmitStatus("تم إرسال طلبك بنجاح. سنتواصل معك قريباً لتأكيد التفاصيل.", false);
+              form.reset();
+              syncPrice();
+              syncVariantImage();
+            } catch (err) {
+              setSubmitStatus("تعذر إرسال الطلب حالياً. يرجى المحاولة بعد قليل أو التواصل معنا هاتفياً.", true);
+            } finally {
+              if (submitBtn) submitBtn.disabled = false;
+            }
           });
         }
 
