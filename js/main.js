@@ -80,41 +80,52 @@
           });
 
           form.addEventListener("submit", function (e) {
-            e.preventDefault();
-            if (!form.checkValidity()) {
-              form.reportValidity();
-              return;
-            }
+  e.preventDefault();
+  
+  const submitBtn = form.querySelector(".cod-submit-btn");
+  submitBtn.disabled = true;
+  submitBtn.innerText = "جاري الإرسال...";
 
-            var checked = selectedVariant();
-            var variant = checked ? checked.value.toUpperCase() : "-";
-            var sale = checked ? checked.dataset.priceSale : "-";
-            var compare = checked ? checked.dataset.priceCompare : "-";
-            var qty = qtyInput.value;
-            var fullname = form.querySelector("[name='fullname']").value.trim();
-            var city = form.querySelector("[name='city']").value.trim();
-            var address = form.querySelector("[name='address']").value.trim();
-            var phone = form.querySelector("[name='phone']").value.trim();
-            var total = totalEl ? totalEl.textContent.trim() : "-";
-            var telLink = document.querySelector(".site-footer-phone a[href^='tel:']");
-            var whatsappNumber = telLink
-              ? (telLink.getAttribute("href") || "").replace("tel:", "").replace(/\D/g, "")
-              : "212600000000";
+  // Extracting form data
+  var checked = selectedVariant();
+  var formData = {
+    fullname: form.querySelector("[name='fullname']").value.trim(),
+    city: form.querySelector("[name='city']").value.trim(),
+    address: form.querySelector("[name='address']").value.trim(),
+    phone: form.querySelector("[name='phone']").value.trim(),
+    variant: checked ? checked.value.toUpperCase() : "-",
+    qty: qtyInput.value,
+    total: totalEl ? totalEl.textContent.trim() : "-"
+  };
 
-            var message =
-              "السلام عليكم، أريد تأكيد طلب COD:\n" +
-              "- الموديل: " + variant + "\n" +
-              "- السعر الحالي: " + sale + " درهم\n" +
-              "- السعر قبل التخفيض: " + compare + " درهم\n" +
-              "- الكمية: " + qty + "\n" +
-              "- المجموع: " + total + "\n" +
-              "- الاسم: " + fullname + "\n" +
-              "- المدينة: " + city + "\n" +
-              "- العنوان: " + address + "\n" +
-              "- الهاتف: " + phone;
+  // 1. Submit to Google Sheets
+  const scriptURL = 'https://script.google.com/macros/s/AKfycbw7MA-DgdxVlfhjADbkIwQ2h6-LXOsvxRMI0TdVExX3GujsCh86jLZFSheM5GLNNio/exec';
+  
+  fetch(scriptURL, { 
+    method: 'POST', 
+    mode: 'no-cors', // Important for Apps Script
+    body: new URLSearchParams(formData) 
+  })
+  .then(() => {
+    // 2. Prepare WhatsApp Message
+    var whatsappNumber = "212600000000"; 
+    var message = "طلب جديد:\n" +
+                  "- الاسم: " + formData.fullname + "\n" +
+                  "- الموديل: " + formData.variant + "\n" +
+                  "- المجموع: " + formData.total;
 
-            window.location.href = "https://wa.me/" + whatsappNumber + "?text=" + encodeURIComponent(message);
-          });
+    var waUrl = "https://wa.me/" + whatsappNumber + "?text=" + encodeURIComponent(message);
+    
+    // 3. Open WhatsApp and Redirect at the same time
+    window.open(waUrl, '_blank'); // Open WhatsApp in new tab
+    window.location.href = "thank-you.html"; // Redirect current page to success page
+  })
+  .catch(error => {
+    console.error('Error!', error.message);
+    submitBtn.disabled = false;
+    submitBtn.innerText = "تأكيد الطلب الآن";
+  });
+});
 
           syncForm();
         }
