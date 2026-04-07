@@ -157,6 +157,56 @@
             statusEl.classList.remove("is-success", "is-error");
           }
 
+          function submitViaHiddenForm(endpoint, payload) {
+            return new Promise(function (resolve, reject) {
+              try {
+                var frameName = "order_submit_frame_" + Date.now() + "_" + Math.floor(Math.random() * 10000);
+                var iframe = document.createElement("iframe");
+                iframe.name = frameName;
+                iframe.style.display = "none";
+
+                var hiddenForm = document.createElement("form");
+                hiddenForm.method = "POST";
+                hiddenForm.action = endpoint;
+                hiddenForm.target = frameName;
+                hiddenForm.style.display = "none";
+
+                Object.keys(payload).forEach(function (key) {
+                  var input = document.createElement("input");
+                  input.type = "hidden";
+                  input.name = key;
+                  input.value = payload[key];
+                  hiddenForm.appendChild(input);
+                });
+
+                var cleaned = false;
+                function cleanup() {
+                  if (cleaned) return;
+                  cleaned = true;
+                  if (hiddenForm.parentNode) hiddenForm.parentNode.removeChild(hiddenForm);
+                  if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
+                }
+
+                var timeout = setTimeout(function () {
+                  cleanup();
+                  reject(new Error("ORDER_SUBMIT_TIMEOUT"));
+                }, 15000);
+
+                iframe.onload = function () {
+                  clearTimeout(timeout);
+                  cleanup();
+                  resolve();
+                };
+
+                document.body.appendChild(iframe);
+                document.body.appendChild(hiddenForm);
+                hiddenForm.submit();
+              } catch (err) {
+                reject(err);
+              }
+            });
+          }
+
           form.addEventListener("submit", async function (e) {
             e.preventDefault();
             if (!form.checkValidity()) {
@@ -206,15 +256,7 @@
             clearSubmitStatus();
             if (submitBtn) submitBtn.disabled = true;
             try {
-              var formBody = new URLSearchParams();
-              Object.keys(payload).forEach(function (key) {
-                formBody.append(key, payload[key]);
-              });
-              var res = await fetch(endpoint, {
-                method: "POST",
-                body: formBody
-              });
-              if (!res.ok) throw new Error("ORDER_SUBMIT_FAILED");
+              await submitViaHiddenForm(endpoint, payload);
 
               setSubmitStatus("تم إرسال طلبك بنجاح. سنتواصل معك قريباً لتأكيد التفاصيل.", false);
               form.reset();
