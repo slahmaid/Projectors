@@ -189,38 +189,3 @@
         });
       })();
 
-      (function () {
-        var video = document.querySelector("video[data-autoplay-when-visible='true']");
-        if (!video) return;
-
-        var started = false;
-        function startPlayback() {
-          if (started) return;
-          started = true;
-          var playPromise = video.play();
-          if (playPromise && typeof playPromise.catch === "function") {
-            playPromise.catch(function () {
-              // Ignore autoplay rejections caused by browser policies.
-            });
-          }
-        }
-
-        if (!("IntersectionObserver" in window)) {
-          startPlayback();
-          return;
-        }
-
-        var observer = new IntersectionObserver(
-          function (entries) {
-            entries.forEach(function (entry) {
-              if (entry.isIntersecting) {
-                startPlayback();
-                observer.disconnect();
-              }
-            });
-          },
-          { rootMargin: "200px 0px" }
-        );
-
-        observer.observe(video);
-      })();
