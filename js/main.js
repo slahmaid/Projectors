@@ -108,7 +108,7 @@
   })
   .then(() => {
     // 2. Prepare WhatsApp Message
-    var whatsappNumber = "212600000000"; 
+    var whatsappNumber = "212782385513"; 
     var message = "طلب جديد:\n" +
                   "- الاسم: " + formData.fullname + "\n" +
                   "- الموديل: " + formData.variant + "\n" +
