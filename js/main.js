@@ -4,7 +4,7 @@
         function formatDhAmount(n) {
           var num = parseInt(String(n), 10);
           if (isNaN(num)) return String(n);
-          return String(num).replace(/\B(?=(\d{3})+(?!\d))/g, " ") + " د.م";
+          return String(num).replace(/\B(?=(\d{3})+(?!\d))/g, " ") + " درهم";
         }
 
         function discountPercent(sale, compare) {
@@ -104,8 +104,8 @@
             var message =
               "السلام عليكم، أريد تأكيد طلب COD:\n" +
               "- الموديل: " + variant + "\n" +
-              "- السعر الحالي: " + sale + " د.م\n" +
-              "- السعر قبل التخفيض: " + compare + " د.م\n" +
+              "- السعر الحالي: " + sale + " درهم\n" +
+              "- السعر قبل التخفيض: " + compare + " درهم\n" +
               "- الكمية: " + qty + "\n" +
               "- المجموع: " + total + "\n" +
               "- الاسم: " + fullname + "\n" +
