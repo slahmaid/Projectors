@@ -81,12 +81,15 @@
 
           form.addEventListener("submit", function (e) {
   e.preventDefault();
-  
-  const submitBtn = form.querySelector(".cod-submit-btn");
+  if (!form.checkValidity()) {
+    form.reportValidity();
+    return;
+  }
+
+  var submitBtn = form.querySelector(".cod-submit-btn");
   submitBtn.disabled = true;
   submitBtn.innerText = "جاري الإرسال...";
 
-  // Extracting form data
   var checked = selectedVariant();
   var formData = {
     fullname: form.querySelector("[name='fullname']").value.trim(),
@@ -98,27 +101,31 @@
     total: totalEl ? totalEl.textContent.trim() : "-"
   };
 
-  // 1. Submit to Google Sheets
+  // 1. Send data to Google Sheets
   const scriptURL = 'https://script.google.com/macros/s/AKfycbw7MA-DgdxVlfhjADbkIwQ2h6-LXOsvxRMI0TdVExX3GujsCh86jLZFSheM5GLNNio/exec';
   
   fetch(scriptURL, { 
     method: 'POST', 
-    mode: 'no-cors', // Important for Apps Script
+    mode: 'no-cors', 
     body: new URLSearchParams(formData) 
   })
   .then(() => {
     // 2. Prepare WhatsApp Message
-    var whatsappNumber = "212782385513"; 
+    var whatsappNumber = "212782385513"; // Use your actual number
     var message = "طلب جديد:\n" +
-                  "- الاسم: " + formData.fullname + "\n" +
                   "- الموديل: " + formData.variant + "\n" +
-                  "- المجموع: " + formData.total;
+                  "- الاسم: " + formData.fullname + "\n" +
+                  "- الهاتف: " + formData.phone;
 
     var waUrl = "https://wa.me/" + whatsappNumber + "?text=" + encodeURIComponent(message);
     
-    // 3. Open WhatsApp and Redirect at the same time
-    window.open(waUrl, '_blank'); // Open WhatsApp in new tab
-    window.location.href = "thank-you.html"; // Redirect current page to success page
+    // 3. Mobile-First Redirection Strategy
+    // For mobile, it's better to redirect the CURRENT window to WhatsApp.
+    // The user can then return to your site or a thank-you page manually.
+    window.location.href = waUrl;
+
+    // Optional: If you MUST show a thank-you page, use a timeout
+    // setTimeout(() => { window.location.href = "thank-you.html"; }, 2000);
   })
   .catch(error => {
     console.error('Error!', error.message);
