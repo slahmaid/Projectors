@@ -24,6 +24,11 @@
           var minusBtn = form.querySelector(".cod-qty-minus");
           var plusBtn = form.querySelector(".cod-qty-plus");
 
+          function trackPurchaseEvent(payload) {
+            if (typeof window.fbq !== "function") return;
+            window.fbq("track", "Purchase", payload || {});
+          }
+
           function selectedVariant() {
             return form.querySelector(".variant-row input[type='radio']:checked");
           }
@@ -100,6 +105,20 @@
     qty: qtyInput.value,
     total: totalEl ? totalEl.textContent.trim() : "-"
   };
+
+  var saleAmount = checked ? parseInt(checked.dataset.priceSale, 10) : NaN;
+  var qtyAmount = parseInt(qtyInput.value, 10);
+  var purchaseValue = !isNaN(saleAmount) && !isNaN(qtyAmount) ? saleAmount * qtyAmount : undefined;
+
+  trackPurchaseEvent({
+    currency: "MAD",
+    value: purchaseValue,
+    content_name: "Solar Projector",
+    content_category: "Order Form CTA",
+    content_type: "product",
+    content_ids: [formData.variant],
+    num_items: qtyAmount
+  });
 
   // 1. Send data to Google Sheets
   const scriptURL = 'https://script.google.com/macros/s/AKfycbw7MA-DgdxVlfhjADbkIwQ2h6-LXOsvxRMI0TdVExX3GujsCh86jLZFSheM5GLNNio/exec';
