@@ -23,6 +23,7 @@
           var qtyInput = form.querySelector(".cod-qty-input");
           var minusBtn = form.querySelector(".cod-qty-minus");
           var plusBtn = form.querySelector(".cod-qty-plus");
+          var phoneInput = form.querySelector("[name='phone']");
 
           function trackPurchaseEvent(payload) {
             if (typeof window.fbq !== "function") return;
@@ -84,6 +85,20 @@
             syncForm();
           });
 
+          if (phoneInput) {
+            function normalizePhone() {
+              var digitsOnly = phoneInput.value.replace(/\D/g, "").slice(0, 10);
+              phoneInput.value = digitsOnly;
+              if (digitsOnly.length === 10) {
+                phoneInput.setCustomValidity("");
+              } else {
+                phoneInput.setCustomValidity("رقم الهاتف يجب أن يتكون من 10 أرقام.");
+              }
+            }
+            phoneInput.addEventListener("input", normalizePhone);
+            normalizePhone();
+          }
+
           form.addEventListener("submit", function (e) {
   e.preventDefault();
   if (!form.checkValidity()) {
@@ -100,7 +115,7 @@
     fullname: form.querySelector("[name='fullname']").value.trim(),
     city: form.querySelector("[name='city']").value.trim(),
     address: form.querySelector("[name='address']").value.trim(),
-    phone: form.querySelector("[name='phone']").value.trim(),
+    phone: form.querySelector("[name='phone']").value.replace(/\D/g, "").slice(0, 10),
     variant: checked ? checked.value.toUpperCase() : "-",
     qty: qtyInput.value,
     total: totalEl ? totalEl.textContent.trim() : "-"
